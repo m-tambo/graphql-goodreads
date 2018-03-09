@@ -6,18 +6,13 @@ const parseXML = promisify(parseString) // old pgk that doesn't suuport promises
 const { 
     GraphQLObjectType, 
     GraphQLSchema, 
-    GraphQlInt,
+    GraphQLInt,
     GraphQLString 
 } = require('graphql')
 
-const API_KEY = '4178&key=qnAZJo5kdbG0SE4Yy97Njw' // require('./.env')
+const API_KEY = require('./.env')
 const url = 'https://www.goodreads.com'
 const authorId = '4178'
-
-fetch(`${url}/author/show.xml?id=${authorId}&key=${API_KEY}`)
-    .then(response => response.text())  // handle the xml
-    .then(parseXML)
-
 
 const AuthorType = new GraphQLObjectType({
     name: 'Author',
@@ -25,7 +20,9 @@ const AuthorType = new GraphQLObjectType({
 
     fields: () => ({
         name: {
-            type: GraphQLString
+            type: GraphQLString,
+            resolve: xml => // this comes from the parsed fetch
+                xml.GoodreadsResponse.author[0].name[0] 
         } 
     })
 })
@@ -39,8 +36,12 @@ module.exports = new GraphQLSchema({
             author: {
                 type: AuthorType,
                 args: {
-                    id: { type: GraphQlInt }
-                }
+                    id: { type: GraphQLInt }
+                },
+                resolve: (root, args) => 
+                    fetch(`${url}/author/show.xml?id=${args.id}&key=${API_KEY}`)
+                        .then(response => response.text())  // handle the xml
+                        .then(parseXML)
             }
         })
     })
