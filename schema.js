@@ -7,12 +7,28 @@ const {
     GraphQLObjectType, 
     GraphQLSchema, 
     GraphQLInt,
-    GraphQLString 
+    GraphQLString,
+    GraphQLList 
 } = require('graphql')
 
 const API_KEY = require('./.env')
 const url = 'https://www.goodreads.com'
-const authorId = '4178'
+
+const BookType = new GraphQLObjectType({
+    name: 'Book',
+    description: 'list of books',
+
+    fields: () => ({
+        title: {
+            type: GraphQLString,
+            resolve: xml => xml.title[0]
+        },
+        isbn: {
+            type: GraphQLString,
+            resolve: xml => xml.isbn[0]
+        }
+    })
+})
 
 const AuthorType = new GraphQLObjectType({
     name: 'Author',
@@ -21,13 +37,17 @@ const AuthorType = new GraphQLObjectType({
     fields: () => ({
         name: {
             type: GraphQLString,
-            resolve: xml => // this comes from the parsed fetch
-                xml.GoodreadsResponse.author[0].name[0] 
+                // dig into the (parsed) fetched xml for the author name
+            resolve: xml => xml.GoodreadsResponse.author[0].name[0]  
+        },
+        books: {
+            type: GraphQLList(BookType),
+            resolve: xml => xml.GoodreadsResponse.author[0].books[0].book
         } 
     })
 })
 
-module.exports = new GraphQLSchema({
+module.exports = new GraphQLSchema({ 
     query: new GraphQLObjectType({
         name: 'Query',
         description: 'some description',
